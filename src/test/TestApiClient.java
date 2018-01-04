@@ -1,50 +1,49 @@
 package test;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
-import com.tunyk.currencyconverter.BankUaCom;
-import com.tunyk.currencyconverter.api.Currency;
-import com.tunyk.currencyconverter.api.CurrencyConverter;
-import com.tunyk.currencyconverter.api.CurrencyConverterException;
-
-import dto.CurrencyResponse;
-import dto.Ticker;
-import main.RestApiClient;
+import dto.koinex.KoinexResponse;
+import dto.koinex.Prices;
+import dto.koinex.XRP;
 import util.JaxbJsonParser;
+import util.RestApiClientHttps;
 
 public class TestApiClient {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
+		getKoinexResponseString();
+	}
 
-		String listOfCoins[] = "BTC,BCH,BCN,XRP".split(",");
+	public static void getKoinexResponseString() {
+		String digiCurrencyUrl = "https://koinex.in/api/ticker";
+		System.out.println(digiCurrencyUrl);
+		String responseBodyString = RestApiClientHttps.processRestRequest(digiCurrencyUrl);
+		System.out.println(responseBodyString);
+		mars(responseBodyString);
+	}
+
+	public static void mars(String responseString) {
+		KoinexResponse koinexResponse = null;
 		try {
-			CurrencyConverter currencyConverter = new BankUaCom(Currency.USD, Currency.EUR);
-			System.out.println(currencyConverter.convertCurrency(1f, Currency.USD, Currency.EUR));
+			koinexResponse = JaxbJsonParser.unmarshalJson(responseString, KoinexResponse.class, false);
 
-		} catch (CurrencyConverterException e) {
+			Prices price = koinexResponse.getPrices();
+			System.out.println(String.format("***PRICES***\nXRP: %s\nETH: %s\nLTC: %s\nBTC: %s\nBCH: %s\n",
+					price.getXRP(), price.getETH(), price.getLTC(), price.getBTC(), price.getBCH()));
+
+			XRP xrp = koinexResponse.getStats().getXRP();
+			printState(xrp);
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
 
-
-/*		for (String coin : listOfCoins) {
-			String url = String.format("https://api.cryptonator.com/api/ticker/%s-USD", coin);
-			Map<String, String> params = new HashMap<String, String>();
-			String responseBodyString = RestApiClient.processRestRequest(url, params, false);
-			try {
-				CurrencyResponse currencyResponse = JaxbJsonParser.unmarshalJson(responseBodyString,
-						CurrencyResponse.class, false);
-				Ticker coinTicker = currencyResponse.getTicker();
-				System.out.println(String.format("%s - %s", coinTicker.getBase(), coinTicker.getPrice()));
-
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-		}
-*/	}
+	public static void printState(XRP xrp) {
+		System.out.println(String.format(
+				"***STATES [%S]***\nlast_traded_price: %s\nlowest_ask: %s\nhighest_bid: %s\nmin_24hrs: %s\nmax_24hrs: %s\nvol_24hrs: %s\n",
+				xrp.getClass().getName(), xrp.getLastTradedPrice(), xrp.getLowestAsk(), xrp.getHighestBid(),
+				xrp.getMin24hrs(), xrp.getMax24hrs(), xrp.getVol24hrs()));
+	}
 
 }
